@@ -1,0 +1,32 @@
+<script>
+  function validateInput(event) {
+    const forbiddenCharacters = ['/','\\', ' ']; // Array of forbidden characters
+    const input = event.target.value;
+    
+    for (let i = 0; i < forbiddenCharacters.length; i++) {
+      if (input.includes(forbiddenCharacters[i])) {
+        event.target.setCustomValidity("The input cannot contain '/', '\\', or spaces.");
+        return;
+      }
+    }
+    
+    event.target.setCustomValidity(""); // Reset custom validation message
+  }
+</script>
+
+<div class="breadcrumbs">
+    <a href="/dashboard/">Dashboard</a> > <a href="/dashboard/projects/">Projects</a> > <a href="/dashboard/projects/add_project/">Add Project</a>
+  </div>
+
+<body>
+    <br> <br>
+    <h1 style="color: black; font-weight: bold;">Add New Project</h1>
+    <form method="POST" action="/added_project">
+      <label for="projectName">Project Name:</label>
+      <input type="text" id="projectName" name="projectName" oninput="validateInput(event)" required>
+      <label for="alertedUsers">Alerted Users:</label>
+      <input type="text" id="alertedUsers" name="alertedUsers">
+      <br>
+      <input type="submit" value="Add Project">
+    </form>
+  </body>

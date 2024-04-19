@@ -1,0 +1,246 @@
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+
+<div class="breadcrumbs">
+  <a href="/dashboard/">Dashboard</a> > <a href="/dashboard/sites/">Sites</a> > <a href="/dashboard/sites/<%= site_slug %>"> Data Log (<%= siteDetails.site_name %>)</a>
+</div>
+
+<div class = "add_button">
+  <a href="/dashboard/sites/<%= site_slug %>/edit" class="changelink">Edit Site Details</a>
+</div>
+<h1 style="color: black; font-weight: bold;"><%= siteDetails.project_id %></h1>
+<h1 style="color: black; font-weight: bold;"><%= siteDetails.site_name %></h1>
+<h3> Device Serial Number: <%= siteDetails.device_serial_number %></h3>
+<h3> Device Type: <%= siteDetails.device_type %></h3>
+<br>
+
+<div class="button-container">
+  <button class="button" id="exportButton" onclick="exportData()">Export Data</button>
+</div>
+
+<div class="chartContainer">
+    <div id="chartContainer">
+        <script>
+            const graphdata = JSON.parse('<%- graphdata %>'); // Parse the stringified data
+            const graphdata2 = JSON.parse('<%- location_data %>'); // Parse the stringified data
+            const chart = [
+            {
+                x: [], // Initialize the x array for invert_level
+                y: [], // Initialize the y array for invert_level
+                type: "scatter",
+                name: "Ground Level", // Add a name for the new line
+                line: {
+                  color: 'orange'
+                }
+            },
+            {
+                x: [], // Initialize the x array
+                y: [], // Initialize the y array
+                type: "scatter",
+                name: "Water Level", 
+                line: {
+                  color: 'DeepSkyBlue'
+                }
+            }
+            ];
+            let previousDate = null;
+            graphdata.forEach((item) => {
+              const timestamp = new Date(item.timestamp);
+              const currentDate = timestamp.toLocaleDateString('en-US');
+              const currentTime = timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric',});
+
+              let date;
+              if (currentDate !== previousDate) {
+                const year = timestamp.getFullYear().toString().slice(-2);
+                date = timestamp.toLocaleString('en-US', { month: 'short', day: 'numeric' }) + " '" + year;
+                previousDate = currentDate;
+              } else {
+                date = currentTime;
+              }
+                chart[1].x.push(date); // Add item.date to the x array
+                var distance = graphdata2.ground_level + (item.water_depth);
+                chart[1].y.push(parseInt(distance)); // Add parsed item.distance to the y array
+
+                chart[0].x.push(date); // Add item.date to the x array
+                chart[0].y.push(parseFloat(graphdata2.ground_level)); // Add parsed item.distance to the y array
+            });
+            const graphOptions = {
+              title: {
+                text:'',
+                font: {
+                  family: 'Poppins',
+                  size: 24
+                },
+                xref: 'paper',
+                x: 0.05,
+              },
+              xaxis: {
+                range: [graphdata.length - 10, graphdata.length - 1],
+                title: {
+                  text: 'Timestamp',
+                  font: {
+                    family: 'Poppins',
+                    size: 14,
+                    color: '#000000'
+                  }
+                }
+                
+              },
+              yaxis: {
+                title: {
+                  text: 'Distance (m)',
+                  font: {
+                    family: 'Poppins',
+                    size: 14,
+                    color: '#000000'
+                  }
+                }
+              }
+            };
+            Plotly.newPlot('chartContainer', chart, graphOptions);
+        </script>
+    </div>
+</div>
+<br><br>
+
+<div id="map" class="map">
+  <script>
+    const location_data = JSON.parse('<%- location_data %>'); // Parse the stringified data
+    var siteDetails = {
+      position_latitude: location_data.position_latitude, 
+      position_longitude: location_data.position_longitude
+    };
+
+    var zoomControl = new ol.control.Zoom({
+      className: 'ol-custom-control' 
+    });
+    var rotateControl = new ol.control.Rotate({
+     className: 'ol-custom-control' 
+    });
+
+
+    var map = new ol.Map({
+      target: 'map',
+      layers: [
+        new ol.layer.Tile({
+          source: new ol.source.OSM()
+        })
+      ],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([siteDetails.position_longitude, siteDetails.position_latitude]),
+        //controls: ol.control.defaults({ attribution: false }).extend([zoomControl, rotateControl]),
+        zoom: 15
+      })
+    });
+  
+    var pinStyle = new ol.style.Style({
+      image: new ol.style.Icon({
+        anchor: [0.5, 1], // Center bottom point of the pin image
+        anchorXUnits: 'fraction',
+        anchorYUnits: 'fraction',
+        src: 'http://maps.gstatic.com/mapfiles/ms2/micons/ltblue-dot.png' // URL of the pin image
+      })
+    });
+  
+    var pin = new ol.Feature({
+      geometry: new ol.geom.Point(ol.proj.fromLonLat([siteDetails.position_longitude, siteDetails.position_latitude]))
+    });
+  
+    var pinLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({
+        features: [pin]
+      })
+    });
+
+    pin.setStyle(pinStyle);
+      
+    var pinLayer = new ol.layer.Vector({
+      source: new ol.source.Vector({
+        features: [pin]
+      })
+    });
+    
+    map.addLayer(pinLayer);
+  
+    document.getElementById('latitude').value = siteDetails.position_latitude.toFixed(6);
+    document.getElementById('longitude').value = siteDetails.position_longitude.toFixed(6);
+
+  </script>
+</div>
+<br>
+
+<div class="coord_container">
+  <div class="column">
+    <label for="latitude">Position Latitude: <%- siteDetails.position_latitude %></label>
+  </div>
+  <div class="column">
+    <label for="longitude">Position Longitude: <%- siteDetails.position_longitude %></label>
+  </div>
+</div>
+
+<br>
+<title>Data Table</title>
+<div class="data_table">
+  <table class="center">
+    <thead>
+        <tr>
+        <th class="data_th">Signal Strength</th>
+        <th class="data_th">Battery (volts)</th>
+        <th class="data_th">Water Depth (cm)</th>
+        <th class="data_th">Water Level from Device (cm)</th>
+        <th class="data_th">Ground Level (mPD)</th>
+        <th class="data_th">Water Level (mPD)</th>
+        <th class="data_long-column">Date and Time</th>
+        </tr>
+    </thead>
+    <% data.forEach((log) => { %>
+      <tr>
+        <td><%= log.signal_value %></td>
+        <td><%= log.voltage %></td>
+        <td><%= log.water_depth %></td>
+        <td><%= log.water_level %></td>
+        <td><%= siteDetails.ground_level %></td>
+        <td><%= siteDetails.ground_level + (log.water_depth) %></td>
+        <td class="longcol3"><%= log.timestamp %></td>
+      </tr>
+    <% }); %>
+  </table>
+</div>
+<br><br><br><br>
+
+<script>
+  function exportData() {
+    // Display a confirmation dialog
+    const confirmed = confirm("Are you sure you want to export the data?");
+  
+    // Proceed with export if the user confirms
+    if (confirmed) {
+      const graphdata = JSON.parse('<%- graphdata %>');
+      // Code to fetch data from SQL and format it for export
+      // For example, you can use AJAX to send a request to a server-side endpoint that retrieves the SQL data and formats it for export
+      // Replace the following code with your actual logic to fetch and format the data
+      // Format the data for export
+      // Format the data for export
+      let csvContent = "data:text/csv;charset=utf-8,"
+      + graphdata.map(item => Object.values(item).map(value => {
+            if (value instanceof Date) {
+              return value.toLocaleString(); // Format the date and time
+            }
+            return value;
+          })
+          .join(",")
+      )
+      .join("\n");
+
+  
+      // Create a temporary anchor element
+      const link = document.createElement('a');
+      link.href = encodeURI(csvContent);
+      link.target = '_blank';
+      link.download = 'data.csv'; // Specify the filename for the exported file
+  
+      // Programmatically click the anchor element to trigger the download
+      link.click();
+    }
+  }
+  </script>

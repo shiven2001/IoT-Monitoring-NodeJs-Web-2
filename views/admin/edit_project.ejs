@@ -1,0 +1,17 @@
+<div class="breadcrumbs">
+  <a href="/dashboard/">Dashboard</a> > <a href="/dashboard/projects/">Projects</a> > <a href="/dashboard/projects/<%= project.project_id %>/edit">Edit <%= project.project_id %></a>
+</div>
+
+<body>
+  <br> <br>
+  <h1 style="color: black; font-weight: bold;">Edit Project <%= project.project_id %></h1>
+  <div type="text" id="projectID" name="projectID" value="<%= project.project_id %>"></div>
+  <form action="/dashboard/projects/<%= project.project_id %>/edited" method="POST">
+    <label for="projectName">Project Name:</label>
+    <input type="text" id="projectName" name="projectName" value="<%= project.project_id %>" required>
+    <label for="alertedUsers">Alerted Users:</label>
+    <input type="text" id="alertedUsers" name="alertedUsers" value="<%= project.alerted_users %>"><br>
+
+    <input type="submit" value="Update">
+  </form>
+</body>

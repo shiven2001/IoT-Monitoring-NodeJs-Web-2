@@ -1,0 +1,236 @@
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+<div class="breadcrumbs">
+  <a href="/dashboard/">Dashboard</a> > <a href="/dashboard/sites/">Sites</a> > <a href="/dashboard/sites/add_site/">Add Site</a>
+</div>
+
+<script>
+function main_toggleFields() {
+  var sensorType = document.getElementById("type").value;
+  var typeSettings = document.getElementById("typeSettings");
+  
+  var draginoArea = document.getElementById("draginoArea");
+  var ZJArea = document.getElementById("ZJArea");
+  var coverLevelField = document.getElementById("coverLevel");
+  var invertLevelField = document.getElementById("invertLevel");
+  var sensorInvertDistanceField = document.getElementById("sensor_invert_distance");
+  var groundLevelField = document.getElementById("groundLevel");
+  
+  var alert_water_block = document.getElementById("alert_waterArea");
+  var firstWaterAlertLevelField = document.getElementById("firstWaterAlertLevel");
+  var secondWaterAlertLevelField = document.getElementById("secondWaterAlertLevel");
+  var firstWaterAlertActiveField = document.getElementById("firstWaterAlertActive");
+  var secondWaterAlertActiveField = document.getElementById("secondWaterAlertActive");
+
+  // Hide typeSettings div if "Please select device type" is selected
+  if (sensorType === "none") {
+    typeSettings.style.display = "none";
+  } else {
+    // Show typeSettings div
+    typeSettings.style.display = "block";
+    // Reset all input fields
+    coverLevelField.value = 0;
+    invertLevelField.value = 0;
+    sensorInvertDistanceField.value = 0;
+    groundLevelField.value = 0;
+    firstWaterAlertLevelField.value = 0;
+    secondWaterAlertLevelField.value = 0;
+    firstWaterAlertActiveField.selectedIndex = 1;
+    secondWaterAlertActiveField.selectedIndex = 1;
+
+    if (sensorType === "Dragino-Water") {
+      draginoArea.style.display = "block";
+      ZJArea.style.display = "none";
+      coverLevelField.required = true;
+      invertLevelField.required = true;
+      sensorInvertDistanceField.required = true;
+      groundLevelField.required = false;
+
+      alert_water_block.style.display = "block";
+      firstWaterAlertLevelField.required = true;
+      secondWaterAlertLevelField.required = true;
+      firstWaterAlertActiveField.required = true;
+      secondWaterAlertActiveField.required = true;
+    }  
+    else if (sensorType === "ZJ.NLJC-01") {
+      draginoArea.style.display = "none";
+      ZJArea.style.display = "block";
+
+      coverLevelField.required = false;
+      invertLevelField.required = false;
+      sensorInvertDistanceField.required = false;
+      groundLevelField.required = true;
+
+      alert_water_block.style.display = "block";
+      firstWaterAlertLevelField.required = true;
+      secondWaterAlertLevelField.required = true;
+      firstWaterAlertActiveField.required = true;
+      secondWaterAlertActiveField.required = true;
+    }
+  }
+}
+</script>
+
+<body>
+  <br> <br>
+  <h1 style="color: black; font-weight: bold;">Add New Site</h1>
+  <form action="/added_site" method="POST">
+    <label for="siteId">Site Name</label>
+    <input type="text" id="siteId" name="siteId" required>
+
+    <label for="project">Associated Project:</label>
+        <select id="project" name="project" required>
+            <% projects.forEach(function(project) { %>
+            <option value="<%= project.project_id %>"><%= project.project_id %></option>
+            <% }) %>
+        </select>
+        <br><br>
+
+    <div class="coord_container">
+      <div class="column">
+        <label for="latitude">Position Latitude:</label>
+        <input type="number" step="any" id="latitude" name="latitude" required><br>
+      </div>
+      <div class="column">
+        <label for="longitude">Position Longitude:</label>
+        <input type="number" step="any" id="longitude" name="longitude" required><br><br>
+      </div>
+    </div>
+
+    <div id="map" class="map">
+      <script>
+        var map = new ol.Map({
+          target: 'map',
+          layers: [
+            new ol.layer.Tile({
+              source: new ol.source.OSM()
+            })
+          ],
+          view: new ol.View({
+            center: ol.proj.fromLonLat([114.16, 22.28]), // Centered around Hong Kong
+            zoom: 15
+          })
+        });
+      
+        var pinStyle = new ol.style.Style({
+          image: new ol.style.Icon({
+            anchor: [0.5, 1], // Center bottom point of the pin image
+            anchorXUnits: 'fraction',
+            anchorYUnits: 'fraction',
+            src: 'http://maps.gstatic.com/mapfiles/ms2/micons/ltblue-dot.png' // URL of the pin image
+          })
+        });
+      
+        var pin = new ol.Feature({
+          geometry: new ol.geom.Point(ol.proj.fromLonLat([114.16, 22.28])) // Initial pin location
+        });
+      
+        pin.setStyle(pinStyle);
+      
+        var pinLayer = new ol.layer.Vector({
+          source: new ol.source.Vector({
+            features: [pin]
+          })
+        });
+      
+        map.addLayer(pinLayer);
+      
+        var dragInteraction = new ol.interaction.Translate({
+          features: new ol.Collection([pin])
+        });
+      
+        map.addInteraction(dragInteraction);
+      
+        pin.on('change', function () {
+          var coordinates = ol.proj.transform(pin.getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326');
+          document.getElementById('latitude').value = coordinates[1].toFixed(6);
+          document.getElementById('longitude').value = coordinates[0].toFixed(6);
+        });
+      
+        document.getElementById('latitude').addEventListener('input', function () {
+          var latitude = parseFloat(this.value);
+          var longitude = parseFloat(document.getElementById('longitude').value);
+          var newCoordinates = ol.proj.fromLonLat([longitude, latitude]);
+          pin.getGeometry().setCoordinates(newCoordinates);
+          map.getView().setCenter(newCoordinates);
+        });
+      
+        document.getElementById('longitude').addEventListener('input', function () {
+          var longitude = parseFloat(this.value);
+          var latitude = parseFloat(document.getElementById('latitude').value);
+          var newCoordinates = ol.proj.fromLonLat([longitude, latitude]);
+          pin.getGeometry().setCoordinates(newCoordinates);
+          map.getView().setCenter(newCoordinates);
+        });
+      </script>
+
+    </div>
+    <br><br>
+
+    <label for="type">Device Type:</label>
+    <select id="type" name="type" onchange="main_toggleFields()" required>
+      <option value="none">Please select device type</option>
+      <option value="Dragino-Water">Dragino-Water</option>
+      <option value="ZJ.NLJC-01">ZJ.NLJC-01</option>
+      <!-- Add more options as needed -->
+    </select><br>
+
+    <!-- TYPE Settings -->
+    <div id="typeSettings" class="hidden">
+      
+      <label for="serialNumber">Device Serial Number:</label>
+      <input type="text" id="serialNumber" name="serialNumber"><br>
+      
+      <h3> Configure Details </h3><br>
+
+      <!-- Dragino-Water-Settings -->
+      <div id="draginoArea" class="hidden">
+        <label for="coverLevel">Cover Level (mPD):</label>
+        <input type="number" step="any" id="coverLevel" name="coverLevel"><br>
+        <div class="help">Please enter the cover level</div>
+        <br>
+
+        <label for="invertLevel">Invert Level (mPD):</label>
+        <input type="number" step="any" id="invertLevel" name="invertLevel"><br>
+        <div class="help">Please enter the invert level</div>
+        <br>
+      
+        <label for="sensor_invert_distance">Distance between Sensor and Invert Level (m):</label>
+        <input type="number" step="any" id="sensor_invert_distance" name="sensor_invert_distance"><br>
+        <div class="help">Please enter the distance between the sensor and the invert level in the manhole</div>
+        <br>
+      </div>
+
+      <!-- ZJ-Water Settings -->
+      <div id="ZJArea" class="hidden">
+        <label for="groundLevel">Ground Level (mPD):</label>
+        <input type="number" step="any" id="groundLevel" name="groundLevel"><br>
+        <div class="help">Please enter the ground level</div>
+        <br>
+      </div>
+
+      <!-- Water Alert Settings -->
+      <div id="alert_waterArea" class="hidden">
+        <h3> Alert User Settings</h3><br>
+        <label for="firstWaterAlertLevel">First Water Alert Level (mPD):</label><br>
+        <input type="number" step="any" id="firstWaterAlertLevel" name="firstWaterAlertLevel"><br><br>
+
+        <label for="secondWaterAlertLevel">Second Water Alert Level (mPD):</label><br>
+        <input type="number" step="any" id="secondWaterAlertLevel" name="secondWaterAlertLevel"><br><br>
+
+        <label for="firstWaterAlertActive">First Water Alert Active:</label>
+        <select class="short-input" id="firstWaterAlertActive" name="firstWaterAlertActive">
+        <option value="Y">Yes</option>
+        <option value="N">No</option>
+        </select><br>
+        <label for="secondWaterAlertActive">Second Water Alert Active:</label>
+        <select class="short-input" id="secondWaterAlertActive" name="secondWaterAlertActive">
+        <option value="Y">Yes</option>
+        <option value="N">No</option>
+        </select><br>
+      </div>
+      <br>
+      <input type="submit" value="Add Device">
+    </div>
+    <br><br><br><br>
+  </form>
+</body>

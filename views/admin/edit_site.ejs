@@ -1,0 +1,168 @@
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+<div class="breadcrumbs">
+  <a href="/dashboard/">Dashboard</a> > <a href="/dashboard/sites/">Sites</a> > <a href="/dashboard/sites/<%= site.site_id %>/edit">Edit <%= site.site_name %></a>
+</div>
+
+<script>
+  function main_toggleFields() {
+    var sensorType = document.getElementById("type").value;
+    var dragino_settingsFields = document.getElementById("Dragino-Water-Settings");
+
+    if (sensorType === "Dragino-Water") {
+      dragino_settingsFields.style.display = "block";
+    } else {
+      dragino_settingsFields.style.display = "none";
+    }
+  }
+</script>
+
+<body>
+  <br> <br>
+  <h1 style="color: black; font-weight: bold;">Edit Site</h1>
+  <form action="/dashboard/sites/<%= site.site_id %>/edited" method="POST">
+    <label for="siteId">Site Name</label>
+    <input type="text" id="siteId" name="siteId" value="<%= site.site_name %>" required>
+
+    <label for="project">Associated Project:</label>
+    <select id="project" name="project" required>
+      <% projects.forEach(function(project) { %>
+      <option value="<%= project.project_id %>" <% if (project.project_id === site.project_id) { %> selected <% } %> ><%= project.project_id %></option>
+      <% }) %>
+    </select>
+    <br><br>
+
+    <div class="coord_container">
+      <div class="column">
+        <label for="latitude">Position Latitude:</label>
+        <input type="number" step="any" id="latitude" name="latitude" value="<%= site.position_latitude %>" required><br>
+      </div>
+      <div class="column">
+        <label for="longitude">Position Longitude:</label>
+        <input type="number" step="any" id="longitude" name="longitude" value="<%= site.position_longitude %>" required><br><br>
+      </div>
+    </div>
+
+    <div id="map" class="map">
+        <script>
+          var map = new ol.Map({
+            target: 'map',
+            layers: [
+              new ol.layer.Tile({
+                source: new ol.source.OSM()
+              })
+            ],
+            view: new ol.View({
+              center: ol.proj.fromLonLat([114.16, 22.28]), // Centered around Hong Kong
+              zoom: 15
+            })
+          });
+        
+          var pinStyle = new ol.style.Style({
+            image: new ol.style.Icon({
+              anchor: [0.5, 1], // Center bottom point of the pin image
+              anchorXUnits: 'fraction',
+              anchorYUnits: 'fraction',
+              src: 'http://maps.gstatic.com/mapfiles/ms2/micons/ltblue-dot.png' // URL of the pin image
+            })
+          });
+        
+          var pin = new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat([114.16, 22.28])) // Initial pin location
+          });
+        
+          pin.setStyle(pinStyle);
+        
+          var pinLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+              features: [pin]
+            })
+          });
+        
+          map.addLayer(pinLayer);
+        
+          var dragInteraction = new ol.interaction.Translate({
+            features: new ol.Collection([pin])
+          });
+        
+          map.addInteraction(dragInteraction);
+        
+          pin.on('change', function () {
+            var coordinates = ol.proj.transform(pin.getGeometry().getCoordinates(), 'EPSG:3857', 'EPSG:4326');
+            document.getElementById('latitude').value = coordinates[1].toFixed(6);
+            document.getElementById('longitude').value = coordinates[0].toFixed(6);
+          });
+        
+          document.getElementById('latitude').addEventListener('input', function () {
+            var latitude = parseFloat(this.value);
+            var longitude = parseFloat(document.getElementById('longitude').value);
+            var newCoordinates = ol.proj.fromLonLat([longitude, latitude]);
+            pin.getGeometry().setCoordinates(newCoordinates);
+            map.getView().setCenter(newCoordinates);
+          });
+        
+          document.getElementById('longitude').addEventListener('input', function () {
+            var longitude = parseFloat(this.value);
+            var latitude = parseFloat(document.getElementById('latitude').value);
+            var newCoordinates = ol.proj.fromLonLat([longitude, latitude]);
+            pin.getGeometry().setCoordinates(newCoordinates);
+            map.getView().setCenter(newCoordinates);
+          });
+
+        </script>
+  
+      </div>
+      <br>
+
+    <label for="type">Device Type:</label>
+    <select id="type" name="type" onchange="main_toggleFields()" required>
+      <option value="none">Please select device type</option>
+      <option value="Dragino-Water" <% if (site.device_type === "Dragino-Water") { %> selected <% } %> >Dragino-Water</option>
+      <option value="Option 2" <% if (site.device_type === "Option 2") { %> selected <% } %> >Option 2</option>
+      <option value="Option 3" <% if (site.device_type === "Option 3") { %> selected <% } %> >Option 3</option>
+      <!-- Add more options as needed -->
+    </select><br>
+
+    <div id="Dragino-Water-Settings" class="<%= site.device_type === 'Dragino-Water' ? '' : 'hidden' %>">
+      <br>
+      <label for="serialNumber">Device Serial Number:</label>
+      <input type="text" id="serialNumber" name="serialNumber" value="<%= site.device_serial_number %>" required><br>
+      <h3> Configure Details </h3><br>
+
+      <label for="coverLevel">Cover Level (mPD):</label>
+      <input type="number" step="any" id="coverLevel" name="coverLevel" value="<%= site.cover_level %>" required><br>
+      <div class="help">Please enter the cover level</div>
+      <br>
+
+      <label for="invertLevel">Invert Level (mPD):</label>
+      <input type="number" step="any" id="invertLevel" name="invertLevel" value="<%= site.invert_level %>" required><br>
+      <div class="help">Please enter the invert level</div><br>
+
+      <label for="sensor_invert_distance">Distance between Sensor and Invert Level (m):</label>
+      <input type="number" step="any" id="sensor_invert_distance" name="sensor_invert_distance" value="<%= site.sensor_invert_distance %>" required><br>
+      <div class="help">Please enter the distance between the sensor and the invert level in the manhole</div>
+      <br>
+
+      <h3> Alert User Settings</h3><br>
+      <label for="firstWaterAlertLevel">First Water Alert Level (mPD):</label><br>
+      <input type="number" step="any" id="firstWaterAlertLevel" name="firstWaterAlertLevel" value="<%= site.first_water_alert_level %>" required><br>
+      <br>
+
+      <label for="secondWaterAlertLevel">Second Water Alert Level (mPD):</label><br>
+      <input type="number" step="any" id="secondWaterAlertLevel" name="secondWaterAlertLevel" value="<%= site.second_water_alert_level %>" required><br>
+      <br>
+
+      <label for="firstWaterAlertActive">First Water Alert Active:</label>
+      <select class="short-input" id="firstWaterAlertActive" name="firstWaterAlertActive" value="<%= site.first_water_alert_active %>" required><br>
+      <option value="Y">Yes</option>
+      <option value="N">No</option>
+      </select><br>
+      <label for="secondWaterAlertActive">Second Water Alert Active:</label>
+      <select class="short-input" id="secondWaterAlertActive" name="secondWaterAlertActive" value="<%= site.second_water_alert_active %>" required><br>
+      <option value="Y">Yes</option>
+      <option value="N">No</option>
+      </select><br><br>
+      <input type="submit" value="Update">
+  </div>
+  <br><br><br><br>
+  </form>
+</body>

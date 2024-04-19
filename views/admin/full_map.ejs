@@ -1,0 +1,72 @@
+<script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+<div class="breadcrumbs">
+    <a href="/dashboard/">Dashboard</a> > <a href="/dashboard/full_map/">Full Location Map</a>
+  </div>
+
+<div id="map" class="map">
+    <br><br>
+    <script>
+      const locationDataArray = JSON.parse('<%- location_data %>'); // Parse the stringified data
+      var siteDetails = {
+        position_latitude: location_data.position_latitude, 
+        position_longitude: location_data.position_longitude
+      };
+  
+      var zoomControl = new ol.control.Zoom({
+        className: 'ol-custom-control' 
+      });
+      var rotateControl = new ol.control.Rotate({
+       className: 'ol-custom-control' 
+      });
+  
+  
+      var map = new ol.Map({
+        target: 'map',
+        layers: [
+          new ol.layer.Tile({
+            source: new ol.source.OSM()
+          })
+        ],
+        view: new ol.View({
+          center: ol.proj.fromLonLat([114.16, 22.30]),
+          //controls: ol.control.defaults({ attribution: false }).extend([zoomControl, rotateControl]),
+          zoom: 12
+        })
+      });
+    
+      var pinStyle = new ol.style.Style({
+        image: new ol.style.Icon({
+          anchor: [0.5, 1], // Center bottom point of the pin image
+          anchorXUnits: 'fraction',
+          anchorYUnits: 'fraction',
+          src: 'http://maps.gstatic.com/mapfiles/ms2/micons/ltblue-dot.png' // URL of the pin image
+        })
+      });
+    
+      var pin = new ol.Feature({
+        geometry: new ol.geom.Point(ol.proj.fromLonLat([siteDetails.position_longitude, siteDetails.position_latitude]))
+      });
+    
+      var pinLayer = new ol.layer.Vector({
+        source: new ol.source.Vector({
+          features: [pin]
+        })
+      });
+  
+      pin.setStyle(pinStyle);
+        
+      var pinLayer = new ol.layer.Vector({
+        source: new ol.source.Vector({
+          features: [pin]
+        })
+      });
+      
+      map.addLayer(pinLayer);
+    
+      document.getElementById('latitude').value = siteDetails.position_latitude.toFixed(6);
+      document.getElementById('longitude').value = siteDetails.position_longitude.toFixed(6);
+  
+    </script>
+
+  </div>
+  <br>
